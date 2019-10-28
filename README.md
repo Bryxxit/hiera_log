@@ -5,10 +5,11 @@ Hiera log is a custom backend that will log your looked up keys in a log file. T
 
 ## Usage
 Minimal
+```
 hierarchy:
   - name: "Hiera log keys"
     lookup_key: hiera_log
-
+```
 
 By default it will write its log to /var/log/puppetlabs/hiera.log
 
@@ -19,13 +20,14 @@ By default a retention of 4 is set and a max size of 1024000 or 4MB of logging
 
 You can overwrite these settings in the options part of hiera
 e.g.
+```
 hierarchy:
   - name: "Hiera log keys"
     lookup_key: hiera_log
     options:
       location: '/var/log/puppetlabs/dev-hiera.log'
       tag: "%{::environment} - %{::trusted.certname} - "
-
+```
 options
  - location
  - size
