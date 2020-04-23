@@ -16,7 +16,7 @@ By default it will write its log to /var/log/puppetlabs/hiera.log
 If you get permission errors in your code you might have to create the file.
 
 https://til.hashrocket.com/posts/cm5jxalutq-log-rotation-in-ruby
-By default a retention of 4 is set and a max size of 1024000 or 4MB of logging
+By default a retention of 4 is set and a max size of 1024000 or 4 times 1MB of logging
 
 You can overwrite these settings in the options part of hiera
 e.g.
@@ -25,11 +25,13 @@ hierarchy:
   - name: "Hiera log keys"
     lookup_key: hiera_log
     options:
-      location: '/var/log/puppetlabs/dev-hiera.log'
+      logdir: '/var/log/puppetlabs/hiera'
+      filename: "%{::environment}-%{::trusted.certname}.log"
       tag: "%{::environment} - %{::trusted.certname} - "
 ```
 options
- - location
+ - logdir
+ - filename
  - size
  - retention
  - tag

@@ -20,15 +20,19 @@ Puppet::Functions.create_function(:hiera_log) do
   end
 
   def log_key(key, options)
-    location = '/var/log/puppetlabs/hiera.log'
+    logdir = '/var/log/puppetlabs'
     size = 1024000
+    filename = "hiera.log"
     retention = 4
     tag = ''
     if options.key?('tag')
       tag = options['tag']
     end
-    if options.key?('location')
-      location = options['location']
+    if options.key?('logdir')
+      logdir = options['logdir']
+    end
+    if options.key?('filename')
+      filename = options['filename']
     end
     if options.key?('size')
       size = options['size']
@@ -36,13 +40,14 @@ Puppet::Functions.create_function(:hiera_log) do
     if options.key?('retention')
       retention = options['retention']
     end
+    location = logdir + "/" + filename
     logger = Logger.new(location, retention, size)
     logger.info(tag + key)
 
   end
   # def lookup_supported_params
   #   [
-  #       :location,
+  #       :logdir,
   #       :size,
   #       :retention,
   #       :tag
