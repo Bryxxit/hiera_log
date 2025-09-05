@@ -87,8 +87,8 @@ Puppet::Functions.create_function(:hiera_log) do
       end
     end
     
-    # Log configuration (same as file mode)
-    logdir = options.fetch('temp_log_dir', '/tmp/hiera_nexus_logs')
+    # Log configuration (use logdir for nexus temp logs)
+    logdir = options.fetch('logdir', '/var/log/puppetlabs')
     filename = options['filename'] || 'hiera_nexus.log'
     size = options.fetch('size', 1024000)
     retention = options.fetch('retention', 4)
@@ -114,19 +114,23 @@ Puppet::Functions.create_function(:hiera_log) do
       
       marker_file = "#{log_file}.uploaded"
       
-      # Skip if already uploaded
+      # Skip if already uploaded (marker file exists)
       next if File.exist?(marker_file)
       
-      # Skip current log file (still being written to) - only upload rotated ones
+      # For current log file (still being written to), check age and size
       if log_file == File.join(logdir, base_filename)
-        # Check if file is "old enough" or large enough to upload
         file_age_minutes = (Time.now - File.mtime(log_file)) / 60
         file_size = File.size(log_file)
-        min_age = options.fetch('min_age_minutes', 5)
-        min_size = options.fetch('min_size_bytes', 1000)
+        min_age = options.fetch('min_age_minutes', 60)    # Default 1 hour
+        min_size = options.fetch('min_size_bytes', 50000) # Default 50KB
         
+        # Only upload if file is older than 1 hour OR larger than min_size
         next unless file_age_minutes >= min_age || file_size >= min_size
       end
+      
+      # Upload rotated files immediately (they're no longer being written to)
+      # Upload current file if conditions above are met
+      # Upload any file if .uploaded marker was removed (doesn't exist)
       
       begin
         upload_to_nexus(nexus_url, nexus_directory, log_file, username, password)
@@ -140,9 +144,8 @@ Puppet::Functions.create_function(:hiera_log) do
   
   def upload_to_nexus(nexus_url, directory, file_path, username, password)
     filename = File.basename(file_path)
-    timestamp = Time.now.strftime('%Y%m%d_%H%M%S')
-    # Add timestamp to avoid conflicts
-    remote_filename = "#{timestamp}_#{filename}"
+    # Use original filename without timestamp - this will overwrite existing file
+    remote_filename = filename
     
     # Construct the full URL
     full_url = "#{nexus_url.chomp('/')}/#{directory.chomp('/')}/#{remote_filename}"
@@ -175,7 +178,7 @@ Puppet::Functions.create_function(:hiera_log) do
   # def lookup_supported_params
   #   [
   #       :mode,                    # 'file' or 'nexus' (default: 'file')
-  #       :logdir,                  # Directory for file mode
+  #       :logdir,                  # Directory for file mode and nexus temp logs
   #       :size,                    # Log file size for file mode
   #       :retention,               # Number of files to retain for file mode
   #       :tag,                     # Tag to prepend to log messages
@@ -185,9 +188,8 @@ Puppet::Functions.create_function(:hiera_log) do
   #       :nexus_username,          # Username for Nexus authentication (optional)
   #       :nexus_password,          # Password for Nexus authentication (optional)
   #       :nexus_password_file,     # File containing password for Nexus authentication (optional)
-  #       :temp_log_dir,            # Directory for nexus temp logs (default: '/tmp/hiera_nexus_logs')
-  #       :min_age_minutes,         # Min age before uploading current log (default: 5)
-  #       :min_size_bytes           # Min size before uploading current log (default: 1000)
+  #       :min_age_minutes,         # Min age before uploading current log (default: 60)
+  #       :min_size_bytes           # Min size before uploading current log (default: 50000)
   #   ]
   # end
 end
